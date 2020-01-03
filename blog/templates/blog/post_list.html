@@ -1,0 +1,250 @@
+{% load static %}
+<html>
+    <head>
+        <!-- Latest compiled and minified Bootstrap CSS -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+            integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+        <title>
+            Happy Holidays
+        </title>
+        <style>
+            .btn-info {margin-bottom: 10px;}
+            #allImages { display: none };
+            #allSortedImagesDiv { display: none };
+            #main {width:900px; height:550px;};
+        </style>
+    </head>
+    <body>
+        <audio webkit-playsinline="true"
+            allow="autoplay"
+            <!-- autoplay="true"> -->
+            autoplay="false">
+            <source id="audioSource" src=""></source>
+        </audio>
+        <div id="main" style="width:900px; height:550px">
+        <h2>
+            The Coops Holiday Update (2017-2019)
+        </h2>
+            <button id="buttonId1" type="button" class="btn btn-info"
+                onclick='startSS(true)'>Click for Holiday Show</button>
+            <button id="buttonId2" type="button" class="btn btn-info"
+                onclick='startSS(false)'>Click for Bonus Show</button>
+
+        <div id="allImages">
+            <!-- Loop through Python posts and use data for HTML -->
+            <!-- Note that values must be added for all fields in admin,
+                even if not used (e.g. created/published dates). -->
+            {% for post in posts %}
+            <div class="ss">
+            <p>
+                <img src="/static/{{post.picture.url}}"
+                    style="width:900px; height:550px">
+            </p>
+            <h3>
+                {{ post.title }}
+            </h3>
+            <p>
+                {{ post.description|linebreaksbr }}
+            </p>
+            </div>
+            {% endfor %}
+        </div>
+        <div id="output">
+            <img src="{% static 'christmasWelcome.jpg' %}"
+                style="width:900px; height:550px" alt="Welcome Image">
+        </div>
+        <div id="allSortedImagesDiv"></div>
+        </div>
+    </body>
+
+    <script>
+    // Set position of initial slide
+        (function position () {
+            let bw = getWidth(); // Browser width
+            let main = document.getElementById("main"); // Main div
+            let sw = main.offsetWidth; // Slide width
+            let marginLeft = bw/2 - sw/2;
+            main.style.marginLeft = marginLeft + "px";
+        })();
+
+        function startSS(isHoliday) {
+            console.log("Start SlideShow");
+            // Prevent restart with active callbacks running.
+            disableButtons();
+
+        console.log("Here is some javascript...");
+        playMusic(isHoliday);
+        document.getElementById("allImages").style.display = "none";
+        let slides = document.getElementsByClassName("ss");
+        let slidesArray = [];
+        let displayTime = 13000;
+        // Split slides for holiday/bonus
+        let slidesHeader = document.getElementsByTagName("h2")[0];
+        if (isHoliday) {
+            slidesHeader.innerHTML = "The Coops Holiday Update (2017-2019)";
+            displayTime = 11500; //12000;
+            for (var i in slides) {
+                if (slides[i].children &&
+                    slides[i].children[2].innerHTML.trim() < 20) {
+                    console.log("Slide pre sort xmas = " + slides[i].innerHTML);
+                    slidesArray.push(slides[i]);
+                }
+            }
+        }
+        else {
+            slidesHeader.innerHTML = "Scott & Lori 30th Anniversary (2019)";
+            displayTime = 12000;
+            for (var i in slides) {
+                if (slides[i].children &&
+                    slides[i].children[2].innerHTML.trim() > 20) {
+                        console.log("Slide pre sort snl = " + slides[i].innerHTML);
+                        slidesArray.push(slides[i]);
+                }
+            }
+        }
+
+        // Sort by alpha on Description field (elem [2])
+        slidesArray.sort(function(a, b) {
+            let aDesc = parseInt(a.children[2].innerHTML.trim());
+            let bDesc = parseInt(b.children[2].innerHTML.trim());
+            return aDesc == bDesc
+                ? 0
+                // Ascending : (aDesc > bDesc ? 1 : -1);
+                : (aDesc < bDesc ? 1 : -1); // Descending
+        });
+
+        allSortedImages = document.getElementById("allSortedImagesDiv");
+        for (i = 0; i < slidesArray.length; ++i) {
+            console.log("Slide post sort = " + slidesArray[i].innerHTML);
+            allSortedImages.appendChild(slidesArray[i]);
+            allSortedImages.style.display = "none";
+        }
+
+        let element = null;
+        // Initial call to slides function.
+        slideLoop(slidesArray.length);
+
+        // Main loop. Decrements each pass.
+        function slideLoop(i) {
+            element = document.getElementById("output");
+            // Don't show index (description).
+            slidesArray[i - 1].children[2].style.display = "none";
+            element.innerHTML = slidesArray[i - 1].outerHTML;
+            unfade(element, unfadeCallback);
+        }
+
+        // This callback is run when unfade completes.
+        function unfadeCallback() {
+            // Set slide display time.
+            setTimeout(() => {
+                fade(element, fadeCallback);
+            }, displayTime);
+        }
+
+        // This callback is run when fade completes.
+        function fadeCallback() {
+            element.style.display = 'none';
+            // decrement i and call myLoop again if i > 0
+            if (--i) slideLoop(i);
+            else {
+                stopMusic();
+                console.log("Slide Show Done");
+                let output = document.getElementById("output");
+                // Show title slide for bonus material.
+                output.innerHTML = '<img src="static/snlIntro.jpg"' +
+                    'style="width:900px; height:550px;" alt="SNL Image">';
+                output.style.display = "block";
+                output.style.opacity = "1";
+                enableButtons();
+            }
+        }
+    }
+
+    function fade(element, fadeCallback) {
+    var op = 1;  // initial opacity
+    var timer = setInterval(function () {
+        if (op <= 0.1){
+            clearInterval(timer);
+            fadeCallback();
+            return;
+        }
+        element.style.opacity = op;
+        element.style.filter = 'alpha(opacity=' + op * 100 + ")";
+        op -= op * 0.1;
+    }, 50);
+    }
+
+    function unfade(element, unfadeCallback) {
+    var op = 0.1;  // initial opacity
+    element.style.display = 'block';
+    var timer = setInterval(function () {
+        if (op >= 1){
+            clearInterval(timer);
+            unfadeCallback();
+        }
+        element.style.opacity = op;
+        element.style.filter = 'alpha(opacity=' + op * 100 + ")";
+        op += op * 0.1;
+    }, 50);
+    }
+
+    function enableButtons() {
+        let buttons = document.getElementsByClassName("btn-info");
+        buttons[0].disabled = false;
+        buttons[0].style.opacity = "1";
+        buttons[1].disabled = false;
+        buttons[1].style.opacity = "1";
+    }
+
+    function disableButtons() {
+        let buttons = document.getElementsByClassName("btn-info");
+        buttons[0].disabled = true;
+        buttons[0].style.opacity = "0.2";
+        buttons[1].disabled = true;
+        buttons[1].style.opacity = "0.2";
+    }
+
+    function getWidth() {
+        return Math.max(
+            document.body.scrollWidth,
+            document.documentElement.scrollWidth,
+            document.body.offsetWidth,
+            document.documentElement.offsetWidth,
+            document.documentElement.clientWidth
+        );
+    }
+
+    function getHeight() {
+        return Math.max(
+            document.body.scrollHeight,
+            document.documentElement.scrollHeight,
+            document.body.offsetHeight,
+            document.documentElement.offsetHeight,
+            document.documentElement.clientHeight
+        );
+    }
+
+    function playMusic(isHoliday) {
+        let source = document.getElementById("audioSource");
+        if (isHoliday) {
+            source.src = "/static/LinusLucy.mp3";
+        }
+        else {
+            source.src = "/static/SiT2.mp3";
+            //source.src = "/static/LinusLucy.mp3";
+        }
+        setTimeout(() => {
+        console.log("In playMusic()");
+        let v = document.getElementsByTagName("audio")[0];
+        v.load();
+        v.play();
+        }, 100 );
+    }
+
+    function stopMusic() {
+        console.log("In stopMusic()");
+        var v = document.getElementsByTagName("audio")[0];
+        v.pause();
+    }
+    </script>
+</html>
